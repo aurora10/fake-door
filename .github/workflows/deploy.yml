@@ -40,14 +40,13 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: . # Use the root of your repository as the build context
-          push: true # Push the image after building
-          # *** REPLACE 'yourdockerhubuser/my-nextjs-app' below with your details ***
-          # Define image tags: 'latest' and the specific commit SHA for versioning
+          context: .
+          push: true
+          # *** ADD PLATFORMS line below ***
+          platforms: linux/amd64,linux/arm64 # Build for both common architectures
           tags: |
-            aurora1010/fake-door:latest
-            aurora1010/fake-door:${{ github.sha }}
-          # Use GitHub Actions cache to potentially speed up subsequent builds
+            aurora10/fake-door:latest
+            aurora10/fake-door:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
