@@ -3,7 +3,7 @@
     # ==== Stage 1: Build ====
     # Use an official Node.js Alpine image (lightweight)
     # Choose a Node version compatible with your project (e.g., 18, 20, 22)
-    - FROM node:18-alpine AS builder
+    FROM node:18-alpine AS builder
 
     # Set working directory
     WORKDIR /app
