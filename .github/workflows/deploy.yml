@@ -45,8 +45,8 @@ jobs:
           # *** REPLACE 'yourdockerhubuser/my-nextjs-app' below with your details ***
           # Define image tags: 'latest' and the specific commit SHA for versioning
           tags: |
-            aurora10@gmail.com/fake-door:latest
-            aurora10@gmail.com/fake-door:${{ github.sha }}
+            aurora1010/fake-door:latest
+            aurora1010/fake-door:${{ github.sha }}
           # Use GitHub Actions cache to potentially speed up subsequent builds
           cache-from: type=gha
           cache-to: type=gha,mode=max
