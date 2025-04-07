@@ -45,8 +45,8 @@ jobs:
           # *** ADD PLATFORMS line below ***
           platforms: linux/amd64,linux/arm64 # Build for both common architectures
           tags: |
-            aurora10/fake-door:latest
-            aurora10/fake-door:${{ github.sha }}
+            aurora1010/fake-door:latest
+            aurora1010/fake-door:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
