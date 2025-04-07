@@ -1,0 +1,86 @@
+# Save this file as .github/workflows/deploy.yml in your project root
+
+name: Deploy Next.js App to VPS
+
+# Define when the workflow should run
+on:
+  push:
+    branches:
+      - main # Trigger on pushes to the main branch (adjust if needed)
+  # Optional: Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    # Use the latest Ubuntu runner provided by GitHub
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out your repository code onto the runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up QEMU for multi-platform build capabilities (good practice)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Step 3: Set up Docker Buildx for advanced build features & caching
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Step 4: Log in to Docker Hub using the secrets
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }} # Use the secure access token
+
+      # Step 5: Build the Docker image using your Dockerfile and push it to Docker Hub
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: . # Use the root of your repository as the build context
+          push: true # Push the image after building
+          # *** REPLACE 'yourdockerhubuser/my-nextjs-app' below with your details ***
+          # Define image tags: 'latest' and the specific commit SHA for versioning
+          tags: |
+            aurora10@gmail.com/fake-door:latest
+            aurora10@gmail.com/fake-door:${{ github.sha }}
+          # Use GitHub Actions cache to potentially speed up subsequent builds
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Step 6: Deploy to VPS using SSH
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3 # Popular action for SSH commands
+        with:
+          # Use the secrets you configured in GitHub repository settings
+          host: ${{ secrets.VPS_SSH_HOST }}
+          username: ${{ secrets.VPS_SSH_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }} # The private key content
+
+          # Commands to run on the VPS
+          script: |
+            # Navigate to the directory where your docker-compose.yml is on the VPS
+            # *** Adjust this path if it's different on your VPS ***
+            cd ~/fake-door || exit 1 # Exit if directory doesn't exist
+
+            # Pull the latest Docker image for the 'app' service from Docker Hub
+            # docker-compose reads the image name from the docker-compose.yml file on the VPS
+            # Use 'sudo' if your VPS user needs it to run docker-compose
+            echo "Pulling latest image for app service..."
+            sudo docker-compose pull app || exit 1 # Exit if pull fails
+
+            # Stop the existing 'app' container and start a new one with the updated image
+            # --force-recreate ensures a new container is made with the new image
+            # --remove-orphans cleans up old containers if any were left behind
+            # Use 'sudo' if needed
+            echo "Restarting app service..."
+            sudo docker-compose up -d --force-recreate --remove-orphans app || exit 1 # Exit if restart fails
+
+            # Optional: Clean up unused Docker images on the VPS to save space
+            echo "Pruning old Docker images..."
+            sudo docker image prune -af
+
+            echo "Deployment complete!"
