@@ -1,10 +1,28 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const { google } = require('googleapis');
 
 const app = express();
 const port = 3000; // Port for the server to listen on
 const csvFilePath = path.join(__dirname, 'applicants.csv');
+
+// --- Google Sheets Config ---
+const SPREADSHEET_ID = '1OWJKaVrLaFw6whnCIoW9Yf-AkNdPs0dMXEsSVvR_RHQ';
+const SHEET_NAME = 'Sheet1'; // The name of the sheet (tab) - Corrected!
+const GOOGLE_CLIENT_ID = '655790129180-n3h617benp42gpglq2jqejvksgo64lav.apps.googleusercontent.com';
+const GOOGLE_CLIENT_SECRET = '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';
+const GOOGLE_REDIRECT_URI = 'http://localhost:3000/oauth2callback'; // Must match console
+const GOOGLE_REFRESH_TOKEN = '1//09uV8Xt9xmcCpCgYIARAAGAkSNwF-L9IrkDeTm60Kz-nmH3GV79k65XtREGFFDvgWWtLN2Viwu285PvQc5cCQhv7lEv68dq_rXRM';
+
+// Setup Google OAuth2 client
+const oauth2Client = new google.auth.OAuth2(
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI
+);
+oauth2Client.setCredentials({ refresh_token: GOOGLE_REFRESH_TOKEN });
+// --- End Google Sheets Config ---
 
 // Middleware to parse JSON bodies
 app.use(express.json());
@@ -24,14 +42,87 @@ const escapeCsvField = (field) => {
     return stringField;
 };
 
+// Helper function to check if email exists in the sheet
+async function checkEmailExists(emailToCheck) {
+    if (!emailToCheck) return false; // Don't check if email is empty
+
+    const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+    const range = `${SHEET_NAME}!C:C`; // Assuming emails are in Column C
+
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: range,
+        });
+
+        const rows = response.data.values;
+        if (rows && rows.length) {
+            // Flatten array and check case-insensitively
+            const lowerCaseEmailToCheck = emailToCheck.toLowerCase();
+            for (const row of rows) {
+                if (row[0] && row[0].toLowerCase() === lowerCaseEmailToCheck) {
+                    console.log(`Duplicate email found: ${emailToCheck}`);
+                    return true; // Email found
+                }
+            }
+        }
+        return false; // Email not found
+    } catch (err) {
+        console.error('Error reading Google Sheet for duplicate check:', err.response ? err.response.data : err.message);
+        // Decide how to handle read errors - potentially allow submission? Or block?
+        // For now, let's log the error and allow submission to proceed (fail-safe)
+        // Alternatively, could return true to prevent submission on error.
+        return false;
+    }
+}
+
+
+// Helper function to append data to Google Sheets
+async function appendToSheet(dataRow) {
+    try {
+        const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+        const range = SHEET_NAME; // Append after the last row in the specified sheet
+        const valueInputOption = 'USER_ENTERED'; // Interpret values as if typed into the UI
+        const resource = {
+            values: [dataRow], // dataRow should be an array like [name, company, email, phone]
+        };
+
+        // Revert back to append
+        const result = await sheets.spreadsheets.values.append({
+            spreadsheetId: SPREADSHEET_ID,
+            range: range, // Use SHEET_NAME for append
+            valueInputOption: valueInputOption,
+            resource: resource,
+        });
+        console.log(`${result.data.updates.updatedCells} cells appended to Google Sheet.`); // Reverted log message
+        return true; // Indicate success
+    } catch (err) {
+        console.error('Error appending to Google Sheet:', err.response ? err.response.data : err.message);
+        // If token error, might need re-authentication (though refresh token should handle this)
+        if (err.response && err.response.data && err.response.data.error === 'invalid_grant') {
+             console.error('Google API Error: Invalid Grant. Refresh token might be expired or revoked. Please re-run get-refresh-token.js');
+        }
+        return false; // Indicate failure
+    }
+}
+
 // Endpoint to handle form submissions
-app.post('/submit', (req, res) => {
+app.post('/submit', async (req, res) => { // Make handler async
     const { name, company, email, phone } = req.body;
 
     // Basic validation (can be more robust)
     if (!name || !company || !email || !phone) {
         return res.status(400).send('Missing required form fields.');
     }
+
+    // --- Check for Duplicate Email ---
+    const emailExists = await checkEmailExists(email);
+    if (emailExists) {
+        // Send a specific message and status code (e.g., 409 Conflict)
+        return res.status(409).send('We already have your data, will get in touch asap...');
+    }
+    // --- End Check for Duplicate Email ---
+
 
     const csvHeader = 'Name,Company Name,Email,Phone\n';
     const csvRow = [
@@ -52,10 +143,24 @@ app.post('/submit', (req, res) => {
             fs.appendFileSync(csvFilePath, csvRow, 'utf8');
             console.log(`Appended new entry to ${csvFilePath}.`);
         }
-        res.status(200).send('Data saved successfully.');
+
+        // --- Append to Google Sheets ---
+        const sheetDataRow = [name, company, email, phone]; // Order matters, should match sheet columns
+        const sheetSuccess = await appendToSheet(sheetDataRow);
+        // --- End Append to Google Sheets ---
+
+        if (sheetSuccess) {
+            res.status(200).send('Data saved successfully to CSV and Google Sheet.');
+        } else {
+            // Still send 200 if CSV write was okay, but maybe log/notify about sheet failure
+            res.status(200).send('Data saved to CSV, but failed to save to Google Sheet.');
+            console.warn('Data saved to CSV, but failed to save to Google Sheet.');
+        }
+
     } catch (error) {
+        // This catch block now primarily handles CSV errors
         console.error('Error writing to CSV file:', error);
-        res.status(500).send('Error saving data.');
+        res.status(500).send('Error saving data to CSV.'); // More specific error
     }
 });
 
