@@ -1,3 +1,4 @@
+require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -8,18 +9,29 @@ const port = 3000; // Port for the server to listen on
 const csvFilePath = path.join(__dirname, 'applicants.csv');
 
 // --- Google Sheets Config ---
-const SPREADSHEET_ID = '1OWJKaVrLaFw6whnCIoW9Yf-AkNdPs0dMXEsSVvR_RHQ';
-const SHEET_NAME = 'Sheet1'; // The name of the sheet (tab) - Corrected!
-const GOOGLE_CLIENT_ID = '655790129180-n3h617benp42gpglq2jqejvksgo64lav.apps.googleusercontent.com';
-const GOOGLE_CLIENT_SECRET = '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';
-const GOOGLE_REDIRECT_URI = 'http://localhost:3000/oauth2callback'; // Must match console
-const GOOGLE_REFRESH_TOKEN = '1//09uV8Xt9xmcCpCgYIARAAGAkSNwF-L9IrkDeTm60Kz-nmH3GV79k65XtREGFFDvgWWtLN2Viwu285PvQc5cCQhv7lEv68dq_rXRM';
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '1OWJKaVrLaFw6whnCIoW9Yf-AkNdPs0dMXEsSVvR_RHQ'; // Keep default or use env var
+const SHEET_NAME = process.env.SHEET_NAME || 'Sheet1'; // Keep default or use env var
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/oauth2callback'; // Keep default or use env var
+const GOOGLE_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
+
+// Validate required environment variables
+if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REFRESH_TOKEN) {
+    console.error('ERROR: Missing required Google API environment variables (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN)');
+    process.exit(1); // Exit if secrets are missing
+}
+if (!SPREADSHEET_ID || !SHEET_NAME) {
+    console.error('ERROR: Missing required Sheet environment variables (SPREADSHEET_ID, SHEET_NAME)');
+    process.exit(1); // Exit if sheet info is missing
+}
+
 
 // Setup Google OAuth2 client
 const oauth2Client = new google.auth.OAuth2(
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
-  GOOGLE_REDIRECT_URI
+  GOOGLE_REDIRECT_URI // This is mainly needed for the initial token generation
 );
 oauth2Client.setCredentials({ refresh_token: GOOGLE_REFRESH_TOKEN });
 // --- End Google Sheets Config ---
