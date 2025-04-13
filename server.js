@@ -109,10 +109,12 @@ async function appendToSheet(dataRow) {
 
 // Endpoint to handle form submissions
 app.post('/submit', async (req, res) => { // Make handler async
-    const { name, company, email, phone } = req.body;
+    // Extract all fields including the new ones
+    const { name, company, email, phone, concern, fundingRound } = req.body;
 
     // Basic validation (can be more robust)
-    if (!name || !company || !email || !phone) {
+    // Include concern and fundingRound in validation
+    if (!name || !company || !email || !phone || !concern || !fundingRound) {
         return res.status(400).send('Missing required form fields.');
     }
 
@@ -127,7 +129,8 @@ app.post('/submit', async (req, res) => { // Make handler async
     // Removed CSV header/row creation
 
     // --- Append to Google Sheets ---
-    const sheetDataRow = [name, company, email, phone]; // Order matters, should match sheet columns
+    // Include concern and fundingRound in the data row
+    const sheetDataRow = [name, company, email, phone, concern, fundingRound]; // Order matters, should match sheet columns
     const sheetSuccess = await appendToSheet(sheetDataRow);
     // --- End Append to Google Sheets ---
 
