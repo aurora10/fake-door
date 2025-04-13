@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 company: formData.get('company'),
                 email: formData.get('email'),
                 phone: formData.get('phone'),
+                concern: formData.get('concern'), // Add the new concern field
+                fundingRound: formData.get('funding-round'), // Add the funding round field
             };
 
             // Hide form, messages and show spinner

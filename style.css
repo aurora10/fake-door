@@ -66,45 +66,112 @@ p {
     font-size: 1rem;
 }
 
+/* --- Form Styling --- */
 .form-group {
-    margin-bottom: 20px; /* More space */
+    margin-bottom: 25px; /* Increased spacing */
     text-align: left;
+    position: relative; /* Needed for floating labels */
 }
 
-.form-group label {
-    display: block;
-    margin-bottom: 8px; /* More space */
-    font-weight: 600;
-    color: var(--text-color);
-    font-size: 0.9rem; /* Slightly smaller */
+/* --- Floating Label Styles --- */
+.floating-label-group label {
+    position: absolute;
+    top: 14px; /* Vertically center roughly */
+    left: 15px; /* Match input padding */
+    font-size: 1rem; /* Start at same size as input */
+    font-weight: 400; /* Normal weight initially */
+    color: var(--secondary-color);
+    pointer-events: none; /* Allow clicks to pass through to input */
+    transition: all var(--transition-speed) ease;
+    display: flex; /* Align icon and text */
+    align-items: center;
+    gap: 6px; /* Space between icon and text */
+    background-color: #ffffff; /* Cover input border when floated */
+    padding: 0 4px; /* Small horizontal padding */
+    z-index: 2; /* Ensure label is above the input by default */
 }
 
-.form-group label i {
-    margin-right: 6px; /* Space after icon */
-    color: var(--secondary-color); /* Subtle icon color */
-    width: 1.1em; /* Ensure fixed width alignment */
+.floating-label-group label i {
+    margin-right: 0; /* Remove default margin */
+    color: var(--secondary-color);
+    width: auto; /* Reset width */
+    transition: color var(--transition-speed) ease;
 }
 
-.form-group input {
+/* State when label should float up */
+.floating-label-group input:focus + label,
+.floating-label-group input:not(:placeholder-shown) + label, /* Use placeholder trick */
+.floating-label-group select:focus + label,
+.floating-label-group select:valid + label { /* :valid works because the first option is disabled */
+    top: -10px; /* Adjust to sit above the border */
+    left: 10px; /* Indent slightly */
+    font-size: 0.8rem; /* Smaller font size */
+    font-weight: 600; /* Bolder when floated */
+    color: var(--primary-color); /* Highlight color */
+}
+
+.floating-label-group input:focus + label i,
+.floating-label-group select:focus + label i {
+    color: var(--primary-color); /* Highlight icon color on focus */
+}
+
+
+/* --- Input & Select Base Styles --- */
+.form-group input,
+.form-group select {
     width: 100%;
-    padding: 12px 15px; /* More padding */
+    padding: 14px 15px; /* Adjusted padding for label */
     border: 1px solid var(--border-color);
-    border-radius: 6px; /* More rounded */
+    border-radius: 6px;
     box-sizing: border-box;
     transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
     font-size: 1rem;
+    background-color: #ffffff; /* Ensure background */
+    color: var(--text-color);
+    position: relative; /* Needed for z-index if label overlaps */
+    z-index: 1;
 }
 
+/* Remove placeholder styling as we use floating labels */
 .form-group input::placeholder {
-    color: #9CA3AF; /* Lighter placeholder */
+    color: transparent;
 }
 
-.form-group input:focus {
+/* --- Custom Select Styles --- */
+.form-group select {
+    appearance: none; /* Remove default arrow */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%236B7280" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>'); /* Custom arrow */
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 20px;
+    padding-right: 45px; /* Make space for the arrow */
+    cursor: pointer;
+}
+
+/* Ensure empty selected option doesn't show text */
+.form-group select:required:invalid {
+    color: var(--secondary-color); /* Style placeholder text */
+}
+.form-group option[value=""][disabled] {
+    display: none; /* Hide the disabled option */
+}
+.form-group option {
+    color: var(--text-color); /* Style dropdown options */
+}
+
+
+/* --- Focus States --- */
+.form-group input:focus,
+.form-group select:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* Softer glow + subtle shadow */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); /* Adjusted alpha */
+    z-index: 3; /* Ensure focused element is above label and other inputs */
 }
 
+/* --- Button Styles --- */
 button {
     background-color: var(--primary-color);
     color: white;
@@ -121,7 +188,7 @@ button {
     display: inline-flex; /* Align icon and text */
     align-items: center;
     justify-content: center;
-    gap: 8px; /* Space between icon and text */
+    gap: 10px; /* Slightly increased space */
 }
 
 /* Animations wrapped for accessibility */
@@ -143,10 +210,10 @@ button {
 
 /* Fallback for no preference */
 button:hover {
-     background-color: #2563EB;
+     background-color: #2563EB; /* Slightly darker blue on hover */
 }
 button:active {
-     background-color: #1D4ED8;
+     background-color: #1D4ED8; /* Even darker blue on active */
 }
 
 
@@ -168,7 +235,7 @@ button:active {
     border-radius: 50%;
     border-left-color: var(--spinner-color);
     animation: spin 1s linear infinite; /* Changed timing function */
-    margin-bottom: 15px;
+    margin-bottom: 15px; /* Space between spinner and text */
 }
 
 @keyframes spin {
@@ -183,30 +250,54 @@ button:active {
 #loading-spinner p {
     color: var(--secondary-color);
     font-weight: 600;
-    margin: 0;
+    margin: 0; /* Reset default p margin */
 }
 
-/* Confirmation Message Styles */
-#confirmation-message {
-    padding: 20px;
-    margin-top: 30px; /* More space */
-    background-color: #ECFDF5; /* Lighter green background */
-    border-left: 5px solid var(--success-color);
-    border-radius: 6px; /* Match inputs/button */
-    text-align: center;
+/* Confirmation & Server Message Styles */
+#confirmation-message,
+#server-message { /* Apply similar styling to both */
+    padding: 15px 20px; /* Adjusted padding */
+    margin-top: 30px;
+    border-radius: 6px;
+    text-align: left; /* Align text left */
     opacity: 1;
     transition: opacity var(--transition-speed) ease;
+    border-left-width: 5px;
+    border-left-style: solid;
+}
+
+#confirmation-message {
+    background-color: #ECFDF5; /* Lighter green background */
+    border-left-color: var(--success-color);
+}
+
+#server-message { /* Specific styles for error/server messages */
+    background-color: #FEF2F2; /* Light red background */
+    border-left-color: #EF4444; /* Red border */
+}
+
+#confirmation-message p,
+#server-message { /* Target p inside confirmation, direct style for server */
+    font-weight: 500; /* Slightly less bold */
+    margin: 0; /* Reset default p margin */
+    line-height: 1.6;
 }
 
 #confirmation-message p {
-    color: #065F46; /* Darker green text */
-    font-weight: 600;
-    margin: 0;
+     color: #065F46; /* Darker green text */
 }
+
+#server-message { /* Text color for server message */
+    color: #B91C1C; /* Darker red text */
+}
+
 
 /* Utility Class */
 .hidden {
     display: none !important; /* Ensure this overrides other display rules */
     opacity: 0;
     pointer-events: none; /* Prevent interaction when hidden */
+    margin-top: 0; /* Collapse margin when hidden */
+    padding-top: 0;
+    padding-bottom: 0;
 }
