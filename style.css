@@ -108,6 +108,7 @@ p {
     font-size: 0.8rem; /* Smaller font size */
     font-weight: 600; /* Bolder when floated */
     color: var(--primary-color); /* Highlight color */
+    padding: 0 6px; /* Slightly wider padding to cover border */
 }
 
 .floating-label-group input:focus + label i,
@@ -168,7 +169,7 @@ p {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); /* Adjusted alpha */
-    z-index: 3; /* Ensure focused element is above label and other inputs */
+    z-index: 1; /* Keep focused input below floated label */
 }
 
 /* --- Button Styles --- */
